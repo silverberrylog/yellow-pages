@@ -58,3 +58,10 @@ export const login = async (email, password) => {
         companyData: company.companyData,
     }
 }
+
+/**
+ * @param {string} sessionPublicId
+ */
+export const logout = async sessionPublicId => {
+    await Session.deleteOne({ publicId: sessionPublicId })
+}

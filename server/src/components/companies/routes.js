@@ -1,4 +1,5 @@
 import Joi from 'joi'
+import { requiresAuth } from './middleware.js'
 import * as services from './services.js'
 
 /** @arg {import('fastify').FastifyInstance} fastify */
@@ -36,6 +37,18 @@ export default async fastify => {
                 req.body.password
             )
             return { session, companyData }
+        },
+    })
+
+    fastify.route({
+        method: 'POST',
+        url: '/logout',
+        schema: {},
+        preHandler: [requiresAuth],
+        handler: async req => {
+            const sessionId = req.headers.authorization.replace('Basic ', '')
+            await services.logout(sessionId)
+            return {}
         },
     })
 }

@@ -14,4 +14,19 @@ export default {
         name: 'company-login-wrong-password',
         description: 'Wrong password. Please try again.',
     },
+    notLoggedIn: {
+        httpCode: 401,
+        name: 'company-not-logged-in',
+        description: 'You must log in in order to continue.',
+    },
+    invalidSession: {
+        httpCode: 401,
+        name: 'company-invalid-session-in',
+        description: 'You must log in in order to continue.',
+    },
+    expiredSession: {
+        httpCode: 401,
+        name: 'company-expired-session-in',
+        description: 'You must log in in order to continue.',
+    },
 }

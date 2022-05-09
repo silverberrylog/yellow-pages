@@ -23,3 +23,9 @@ export const loginCompany = async companyData => {
     })
     return [res.json(), res]
 }
+
+export const authHeaders = registerBody => ({
+    headers: {
+        authorization: `Basic ${registerBody.session.id}`,
+    },
+})

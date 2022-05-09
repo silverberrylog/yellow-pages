@@ -1,8 +1,17 @@
 import { expect } from 'chai'
-import { server } from '../../test-utils/setup.js'
 import { expectError } from '../../test-utils/index.js'
-import { genCompanyData, registerCompany, loginCompany } from './test-utils.js'
+import {
+    genCompanyData,
+    registerCompany,
+    loginCompany,
+    authHeaders,
+} from './test-utils.js'
 import errors from './errors.js'
+import { requiresAuth } from './middleware.js'
+import { Company, Session } from './models.js'
+import { faker } from '@faker-js/faker'
+import mongoose from 'mongoose'
+import { server } from '../../test-utils/setup.js'
 
 describe('Testing the companies component', () => {
     describe('Register', () => {
@@ -59,6 +68,86 @@ describe('Testing the companies component', () => {
             const [, res] = await loginCompany(wrongPasswordData)
 
             expectError(res, errors.loginWrongPassword)
+        })
+    })
+
+    describe('Logout', () => {
+        it('Should log out a company', async () => {
+            const [registerBody] = await registerCompany()
+
+            const res = await server.inject({
+                method: 'POST',
+                url: '/companies/logout',
+                ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expect(res.statusCode).to.eql(200)
+            expect(body).to.be.empty
+        })
+    })
+
+    describe('Middleware', () => {
+        it('Should succeed when the session exists and is not expired', async () => {
+            const [registerBody] = await registerCompany()
+            let mockRequest = {
+                ...authHeaders(registerBody),
+            }
+
+            await requiresAuth(mockRequest).catch(console.log)
+
+            expect(mockRequest.company).to.be.instanceOf(Company)
+        })
+
+        it('Should throw when the auth header is not preset', async () => {
+            let mockRequest = {
+                headers: {
+                    lorem: 'ipsum',
+                },
+            }
+
+            await requiresAuth(mockRequest).catch(err => {
+                expect(err.name).to.eql(errors.notLoggedIn.name)
+            })
+        })
+
+        it('Should throw when the auth header is not formatted properly', async () => {
+            let mockRequest = {
+                headers: {
+                    authorization: faker.lorem.words(3),
+                },
+            }
+
+            await requiresAuth(mockRequest).catch(err => {
+                expect(err.name).to.eql(errors.notLoggedIn.name)
+            })
+        })
+
+        it('Should throw when the session does not exist', async () => {
+            let mockRequest = {
+                ...authHeaders({
+                    session: { id: new mongoose.Types.ObjectId() },
+                }),
+            }
+
+            await requiresAuth(mockRequest).catch(err => {
+                expect(err.name).to.eql(errors.invalidSession.name)
+            })
+        })
+
+        it('Should throw when the session is expired', async () => {
+            const [registerBody] = await registerCompany()
+            await Session.findOneAndUpdate(
+                { publicId: registerBody.session.id },
+                { expiresAt: new Date(2000, 10, 10) }
+            )
+            let mockRequest = {
+                ...authHeaders(registerBody),
+            }
+
+            await requiresAuth(mockRequest).catch(err => {
+                expect(err.name).to.eql(errors.expiredSession.name)
+            })
         })
     })
 })
