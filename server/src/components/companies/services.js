@@ -65,3 +65,24 @@ export const login = async (email, password) => {
 export const logout = async sessionPublicId => {
     await Session.deleteOne({ publicId: sessionPublicId })
 }
+
+/**
+ * @typedef {Object} BusinessData
+ * @prop {string} name
+ * @prop {string} addressLine1
+ * @prop {string} addressLine2
+ * @prop {string} city
+ * @prop {string} state
+ * @prop {string} country
+ * @prop {string} email
+ * @prop {string} phoneNumber
+ * @prop {string} description
+ */
+
+/**
+ * @param {string} companyId
+ * @param {BusinessData} businessData
+ */
+export const setup = async (companyId, businessData) => {
+    await Company.findByIdAndUpdate(companyId, { businessData })
+}

@@ -51,4 +51,27 @@ export default async fastify => {
             return {}
         },
     })
+
+    fastify.route({
+        method: 'POST',
+        url: '/setup',
+        schema: {
+            name: Joi.string().required(),
+            description: Joi.string().required(),
+            phoneNumber: Joi.string().required(),
+            email: Joi.string().email().required(),
+            addressLine1: Joi.string().required(),
+            addressLine2: Joi.string(),
+            city: Joi.string().required(),
+            state: Joi.string().required(),
+            country: Joi.string().required(),
+            // businessHours: Joi.string().required(),
+            // photos: Joi.string().required(),
+        },
+        preHandler: [requiresAuth],
+        handler: async req => {
+            await services.setup(req.company.id, req.body)
+            return {}
+        },
+    })
 }

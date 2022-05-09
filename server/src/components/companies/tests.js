@@ -150,4 +150,31 @@ describe('Testing the companies component', () => {
             })
         })
     })
+
+    describe('Account setup', () => {
+        it('Should succeed when all the data is present', async () => {
+            const [registerBody] = await registerCompany()
+
+            const res = await server.inject({
+                method: 'POST',
+                url: '/companies/setup',
+                body: {
+                    name: faker.company.companyName(),
+                    addressLine1: faker.address.streetAddress(),
+                    addressLine2: faker.address.secondaryAddress(),
+                    city: faker.address.city(),
+                    state: faker.address.state(),
+                    country: faker.address.country(),
+                    email: faker.internet.email(),
+                    phoneNumber: faker.phone.phoneNumber('#### ### ###'),
+                    description: faker.company.bs(),
+                },
+                ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expect(res.statusCode).to.eql(200)
+            expect(body).to.be.empty
+        })
+    })
 })
