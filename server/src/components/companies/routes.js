@@ -20,4 +20,22 @@ export default async fastify => {
             return { session, companyData }
         },
     })
+
+    fastify.route({
+        method: 'POST',
+        url: '/login',
+        schema: {
+            body: Joi.object({
+                email: Joi.string().email().required(),
+                password: Joi.string().required(),
+            }),
+        },
+        handler: async req => {
+            const { session, companyData } = await services.login(
+                req.body.email,
+                req.body.password
+            )
+            return { session, companyData }
+        },
+    })
 }

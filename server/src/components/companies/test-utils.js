@@ -14,3 +14,12 @@ export const registerCompany = async companyData => {
     })
     return [res.json(), res]
 }
+
+export const loginCompany = async companyData => {
+    const res = await server.inject({
+        method: 'POST',
+        url: '/companies/login',
+        body: companyData || genCompanyData(),
+    })
+    return [res.json(), res]
+}
