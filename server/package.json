@@ -1,0 +1,26 @@
+{
+    "name": "server",
+    "version": "0.1.0",
+    "main": "src/main.js",
+    "type": "module",
+    "scripts": {
+        "prod": "cross-env NODE_ENV=production node src/main.js",
+        "dev": "cross-env NODE_ENV=development nodemon src/main.js",
+        "test": "cross-env NODE_ENV=test nodemon --exec \"mocha src/**/*/tests.js\""
+    },
+    "devDependencies": {
+        "@faker-js/faker": "^6.3.1",
+        "chai": "^4.3.6",
+        "mocha": "^10.0.0"
+    },
+    "dependencies": {
+        "bcrypt": "^5.0.1",
+        "cross-env": "^7.0.3",
+        "dayjs": "^1.11.2",
+        "dotenv": "^8.6.0",
+        "fastify": "^3.14.1",
+        "joi": "^17.4.1",
+        "mongoose": "^6.3.2",
+        "uid-safe": "^2.1.5"
+    }
+}

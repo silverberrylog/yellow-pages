@@ -1,0 +1,6 @@
+file:
+    - src/test-utils/setup.js
+recursive: true
+timeout: 8000
+sort: true
+exit: true
