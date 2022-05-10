@@ -5,6 +5,7 @@ import {
     registerCompany,
     loginCompany,
     authHeaders,
+    genTime,
 } from './test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
@@ -168,6 +169,18 @@ describe('Testing the companies component', () => {
                     email: faker.internet.email(),
                     phoneNumber: faker.phone.phoneNumber('#### ### ###'),
                     description: faker.company.bs(),
+                    businessHours: Array(7)
+                        .fill(null)
+                        .map(() => ({
+                            startsAt: faker.datatype.number({
+                                min: 0,
+                                max: (24 * 60) / 2,
+                            }),
+                            endsAt: faker.datatype.number({
+                                min: (24 * 60) / 2,
+                                max: 24 * 60,
+                            }),
+                        })),
                 },
                 ...authHeaders(registerBody),
             })

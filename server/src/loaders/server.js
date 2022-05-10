@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import errorHandler from '../utils/errorHandler.js'
 import { validationOptions } from '../utils/validation.js'
+import AppError from '../utils/AppError.js'
 
 export default async () => {
     const fastify = Fastify({

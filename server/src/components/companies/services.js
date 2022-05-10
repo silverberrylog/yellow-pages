@@ -67,7 +67,13 @@ export const logout = async sessionPublicId => {
 }
 
 /**
- * @typedef {Object} BusinessData
+ * @typedef {Object} BusinessHours
+ * @prop {string} startsAt
+ * @prop {string} endsAt
+ */
+
+/**
+ * @typedef {Object} CompanyData
  * @prop {string} name
  * @prop {string} addressLine1
  * @prop {string} addressLine2
@@ -77,12 +83,13 @@ export const logout = async sessionPublicId => {
  * @prop {string} email
  * @prop {string} phoneNumber
  * @prop {string} description
+ * @prop {BusinessHours[]} businessHours
  */
 
 /**
  * @param {string} companyId
- * @param {BusinessData} businessData
+ * @param {CompanyData} companyData
  */
-export const setup = async (companyId, businessData) => {
-    await Company.findByIdAndUpdate(companyId, { businessData })
+export const setup = async (companyId, companyData) => {
+    await Company.findByIdAndUpdate(companyId, { companyData })
 }

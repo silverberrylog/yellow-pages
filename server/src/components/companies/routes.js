@@ -1,6 +1,7 @@
 import Joi from 'joi'
 import { requiresAuth } from './middleware.js'
 import * as services from './services.js'
+import { timeRegex } from '../../utils/validation.js'
 
 /** @arg {import('fastify').FastifyInstance} fastify */
 export default async fastify => {
@@ -56,17 +57,35 @@ export default async fastify => {
         method: 'POST',
         url: '/setup',
         schema: {
-            name: Joi.string().required(),
-            description: Joi.string().required(),
-            phoneNumber: Joi.string().required(),
-            email: Joi.string().email().required(),
-            addressLine1: Joi.string().required(),
-            addressLine2: Joi.string(),
-            city: Joi.string().required(),
-            state: Joi.string().required(),
-            country: Joi.string().required(),
-            // businessHours: Joi.string().required(),
-            // photos: Joi.string().required(),
+            body: Joi.object({
+                name: Joi.string().required(),
+                description: Joi.string().required(),
+                phoneNumber: Joi.string().required(),
+                email: Joi.string().email().required(),
+                addressLine1: Joi.string().required(),
+                addressLine2: Joi.string(),
+                city: Joi.string().required(),
+                state: Joi.string().required(),
+                country: Joi.string().required(),
+                businessHours: Joi.array()
+                    .items(
+                        Joi.object({
+                            // number of minutes since the day started
+                            startsAt: Joi.number()
+                                .integer()
+                                .min(0)
+                                .max(24 * 60)
+                                .required(),
+                            endsAt: Joi.number()
+                                .integer()
+                                .min(Joi.ref('startsAt'))
+                                .max(24 * 60)
+                                .required(),
+                        })
+                    )
+                    .length(7)
+                    .required(),
+            }),
         },
         preHandler: [requiresAuth],
         handler: async req => {

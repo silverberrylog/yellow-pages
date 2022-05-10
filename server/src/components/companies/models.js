@@ -17,28 +17,42 @@ const SessionSchema = new mongoose.Schema(
 
 export const Session = mongoose.model('Session', SessionSchema)
 
-const CompanyDataSchema = new mongoose.Schema(
+const CompanyPhotoSchema = new mongoose.Schema(
     {
-        name: { type: String, required: true },
-        description: { type: String, required: true },
-        phoneNumber: { type: String, required: true },
-        email: { type: String, required: true },
-        addressLine1: { type: String, required: true },
-        addressLine2: { type: String, required: false },
-        city: { type: String, required: true },
-        state: { type: String, required: true },
-        country: { type: String, required: true },
-        // businessHours: { type: String, required: true },
-        // photos: { type: String, required: true },
+        privatePath: { type: String, required: true },
+        publicPath: { type: String, required: true },
+        company: {
+            type: mongoose.Types.ObjectId,
+            required: true,
+            ref: 'Company',
+        },
     },
     {
         timestamps: true,
     }
 )
 
+const BusinessHours = {
+    startsAt: { type: Number, required: true },
+    endsAt: { type: Number, required: true },
+}
+
+const CompanyData = {
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    email: { type: String, required: true },
+    addressLine1: { type: String, required: true },
+    addressLine2: { type: String, required: false },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    country: { type: String, required: true },
+    businessHours: { type: [BusinessHours], required: true },
+}
+
 const CompanySchema = new mongoose.Schema(
     {
-        companyData: { type: CompanyDataSchema, required: false },
+        companyData: { type: CompanyData, required: false },
         email: { type: String, required: true },
         password: { type: String, required: true },
     },
