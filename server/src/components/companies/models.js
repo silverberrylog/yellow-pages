@@ -32,6 +32,8 @@ const CompanyPhotoSchema = new mongoose.Schema(
     }
 )
 
+export const CompanyPhoto = mongoose.model('CompanyPhoto', CompanyPhotoSchema)
+
 const BusinessHours = {
     startsAt: { type: Number, required: true },
     endsAt: { type: Number, required: true },

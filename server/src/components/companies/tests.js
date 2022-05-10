@@ -5,7 +5,6 @@ import {
     registerCompany,
     loginCompany,
     authHeaders,
-    genTime,
 } from './test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
@@ -13,6 +12,9 @@ import { Company, Session } from './models.js'
 import { faker } from '@faker-js/faker'
 import mongoose from 'mongoose'
 import { server } from '../../test-utils/setup.js'
+import formAutoContent from 'form-auto-content'
+import { createReadStream } from 'fs'
+import lodashMerge from 'lodash.merge'
 
 describe('Testing the companies component', () => {
     describe('Register', () => {
@@ -183,6 +185,27 @@ describe('Testing the companies component', () => {
                         })),
                 },
                 ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expect(res.statusCode).to.eql(200)
+            expect(body).to.be.empty
+        })
+    })
+    describe('Photos', () => {
+        it('Should successfully upload a photo when all the data is present', async () => {
+            const [registerBody] = await registerCompany()
+            const formData = formAutoContent({
+                files: [
+                    createReadStream('src/test-utils/files/photo-1.jpg'),
+                    createReadStream('src/test-utils/files/photo-2.jpg'),
+                ],
+            })
+
+            const res = await server.inject({
+                method: 'POST',
+                url: '/companies/photos',
+                ...lodashMerge(formData, authHeaders(registerBody)),
             })
 
             const body = res.json()

@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import uid from 'uid-safe'
 import AppError from '../../utils/AppError.js'
 import errors from './errors.js'
-import { Company, Session } from './models.js'
+import { Company, CompanyPhoto, Session } from './models.js'
 
 const createSession = async company => {
     return await Session.create({
@@ -92,4 +92,28 @@ export const logout = async sessionPublicId => {
  */
 export const setup = async (companyId, companyData) => {
     await Company.findByIdAndUpdate(companyId, { companyData })
+}
+
+/**
+ * @typedef {Object} File
+ * @property {string} fileNameOnDisk
+ * @property {string} filePathOnDisk
+ */
+
+/**
+ * @param {string} companyId
+ * @param {File[]} files
+ */
+export const addPhotos = async (companyId, files) => {
+    await CompanyPhoto.bulkWrite(
+        files.map(file => ({
+            insertOne: {
+                document: {
+                    privatePath: file.filePathOnDisk,
+                    publicPath: '/photos/' + file.fileNameOnDisk,
+                    company: companyId,
+                },
+            },
+        }))
+    )
 }

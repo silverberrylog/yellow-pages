@@ -1,7 +1,6 @@
 import Joi from 'joi'
 import { requiresAuth } from './middleware.js'
 import * as services from './services.js'
-import { timeRegex } from '../../utils/validation.js'
 
 /** @arg {import('fastify').FastifyInstance} fastify */
 export default async fastify => {
@@ -90,6 +89,29 @@ export default async fastify => {
         preHandler: [requiresAuth],
         handler: async req => {
             await services.setup(req.company.id, req.body)
+            return {}
+        },
+    })
+
+    // accepts files
+    fastify.route({
+        method: 'POST',
+        url: '/photos',
+        schema: {
+            body: Joi.object({
+                files: Joi.array()
+                    .items(
+                        Joi.object({
+                            fileNameOnDisk: Joi.string().required(),
+                            filePathOnDisk: Joi.string().required(),
+                        })
+                    )
+                    .required(),
+            }),
+        },
+        preHandler: [requiresAuth],
+        handler: async req => {
+            await services.addPhotos(req.company.id, req.body.files)
             return {}
         },
     })
