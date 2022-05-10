@@ -97,6 +97,14 @@ export const setup = async (companyId, companyData) => {
 }
 
 /**
+ * @param {string} companyId
+ * @param {Partial<CompanyData>} companyData
+ */
+export const updateInfo = async (companyId, companyData) => {
+    await Company.findByIdAndUpdate(companyId, { companyData })
+}
+
+/**
  * @typedef {Object} File
  * @property {string} fileNameOnDisk
  * @property {string} filePathOnDisk

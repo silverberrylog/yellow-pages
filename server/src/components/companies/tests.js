@@ -190,7 +190,7 @@ describe('Testing the companies component', () => {
             expect(body).to.be.empty
         })
     })
-    describe('Photos', () => {
+    describe('Update company info', () => {
         it('Should successfully upload 2 photos', async () => {
             const [registerBody] = await registerCompany()
 
@@ -210,6 +210,24 @@ describe('Testing the companies component', () => {
                 url: '/companies/photos',
                 body: {
                     publicURLS: [uploadBody.photoURLS[0]],
+                },
+                ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expect(res.statusCode).to.eql(200)
+            expect(body).to.be.empty
+        })
+
+        it('Should update the company info', async () => {
+            const [registerBody] = await registerCompany()
+
+            const res = await server.inject({
+                method: 'PATCH',
+                url: '/companies/info',
+                body: {
+                    email: faker.internet.email(),
+                    phoneNumber: faker.phone.phoneNumber('#### ### ###'),
                 },
                 ...authHeaders(registerBody),
             })
