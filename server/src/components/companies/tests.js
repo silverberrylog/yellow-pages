@@ -5,6 +5,7 @@ import {
     registerCompany,
     loginCompany,
     authHeaders,
+    uploadPhotos,
 } from './test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
@@ -12,9 +13,6 @@ import { Company, Session } from './models.js'
 import { faker } from '@faker-js/faker'
 import mongoose from 'mongoose'
 import { server } from '../../test-utils/setup.js'
-import formAutoContent from 'form-auto-content'
-import { createReadStream } from 'fs'
-import lodashMerge from 'lodash.merge'
 
 describe('Testing the companies component', () => {
     describe('Register', () => {
@@ -193,19 +191,27 @@ describe('Testing the companies component', () => {
         })
     })
     describe('Photos', () => {
-        it('Should successfully upload a photo when all the data is present', async () => {
+        it('Should successfully upload 2 photos', async () => {
             const [registerBody] = await registerCompany()
-            const formData = formAutoContent({
-                files: [
-                    createReadStream('src/test-utils/files/photo-1.jpg'),
-                    createReadStream('src/test-utils/files/photo-2.jpg'),
-                ],
-            })
+
+            const [body, res] = await uploadPhotos(registerBody)
+
+            expect(res.statusCode).to.eql(200)
+            expect(body.photoURLS).to.be.an('array')
+            body.photoURLS.forEach(item => expect(item).to.be.a('string'))
+        })
+
+        it('Should successfully delete 1 photo', async () => {
+            const [registerBody] = await registerCompany()
+            const [uploadBody] = await uploadPhotos(registerBody)
 
             const res = await server.inject({
-                method: 'POST',
+                method: 'DELETE',
                 url: '/companies/photos',
-                ...lodashMerge(formData, authHeaders(registerBody)),
+                body: {
+                    publicURLS: [uploadBody.photoURLS[0]],
+                },
+                ...authHeaders(registerBody),
             })
 
             const body = res.json()

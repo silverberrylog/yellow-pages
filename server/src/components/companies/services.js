@@ -4,6 +4,8 @@ import uid from 'uid-safe'
 import AppError from '../../utils/AppError.js'
 import errors from './errors.js'
 import { Company, CompanyPhoto, Session } from './models.js'
+import { unlinkSync } from 'fs'
+import { resolve } from 'path'
 
 const createSession = async company => {
     return await Session.create({
@@ -116,4 +118,26 @@ export const addPhotos = async (companyId, files) => {
             },
         }))
     )
+
+    return {
+        photoURLS: files.map(file => '/photos/' + file.fileNameOnDisk),
+    }
+}
+
+/**
+ * @param {string} companyId
+ * @param {string[]} publicURLS
+ */
+export const deletePhotos = async (companyId, publicURLS) => {
+    const photosFilter = {
+        company: companyId,
+        publicPath: { $in: publicURLS },
+    }
+
+    const photos = await CompanyPhoto.find(photosFilter).select('privatePath')
+
+    for (const { privatePath } of photos) {
+        unlinkSync(privatePath)
+    }
+    await CompanyPhoto.deleteMany(photosFilter)
 }

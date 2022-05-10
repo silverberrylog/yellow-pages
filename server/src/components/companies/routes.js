@@ -111,7 +111,25 @@ export default async fastify => {
         },
         preHandler: [requiresAuth],
         handler: async req => {
-            await services.addPhotos(req.company.id, req.body.files)
+            const { photoURLS } = await services.addPhotos(
+                req.company.id,
+                req.body.files
+            )
+            return { photoURLS }
+        },
+    })
+
+    fastify.route({
+        method: 'DELETE',
+        url: '/photos',
+        schema: {
+            body: Joi.object({
+                publicURLS: Joi.array().items(Joi.string()).required(),
+            }),
+        },
+        preHandler: [requiresAuth],
+        handler: async req => {
+            await services.deletePhotos(req.company.id, req.body.publicURLS)
             return {}
         },
     })
