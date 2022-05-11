@@ -136,6 +136,7 @@ export default async fastify => {
                 page: Joi.number().integer().min(1).required(),
                 sortBy: Joi.string().allow('name', 'distance').required(),
                 sortOrder: Joi.string().allow('asc', 'desc').required(),
+                mustBeOpen: Joi.boolean().default(false),
             }),
         },
         preHandler: [],
@@ -145,7 +146,8 @@ export default async fastify => {
                 req.query.radiusInMeters,
                 req.query.page,
                 req.query.sortBy,
-                req.query.sortOrder
+                req.query.sortOrder,
+                req.query.mustBeOpen
             )
             return { companies, count }
         },

@@ -4,6 +4,7 @@ import formAutoContent from 'form-auto-content'
 import { createReadStream } from 'fs'
 import lodashMerge from 'lodash.merge'
 import { genCoords, reverseArr, toNumbersArr } from '../../test-utils/index.js'
+import { expect } from 'chai'
 
 export const genCompanyData = () => ({
     email: faker.internet.email(),
@@ -19,7 +20,20 @@ export const registerCompany = async companyData => {
     return [res.json(), res]
 }
 
-export const setCompanyUp = async (registerBody, addressCoords) => {
+export const setCompanyUp = async (registerBody, addressCoords, isOpenNow) => {
+    let businessHours = Array(7)
+        .fill(null)
+        .map(() => ({
+            startsAt: isOpenNow
+                ? 0
+                : faker.datatype.number({ min: 0, max: (24 * 60) / 2 }),
+            endsAt: isOpenNow
+                ? 24 * 60
+                : faker.datatype.number({ min: (24 * 60) / 2, max: 24 * 60 }),
+        }))
+    // console.log(isOpenNow)
+    // console.log(businessHours)
+
     const res = await server.inject({
         method: 'POST',
         url: '/companies/info',
@@ -34,18 +48,7 @@ export const setCompanyUp = async (registerBody, addressCoords) => {
             email: faker.internet.email(),
             phoneNumber: faker.phone.phoneNumber('#### ### ###'),
             description: faker.company.bs(),
-            businessHours: Array(7)
-                .fill(null)
-                .map(() => ({
-                    startsAt: faker.datatype.number({
-                        min: 0,
-                        max: (24 * 60) / 2,
-                    }),
-                    endsAt: faker.datatype.number({
-                        min: (24 * 60) / 2,
-                        max: 24 * 60,
-                    }),
-                })),
+            businessHours,
         },
         ...authHeaders(registerBody),
     })
@@ -88,7 +91,8 @@ export const uploadPhotos = async registerBody => {
 export const createCompaniesAroundCoords = async (
     count,
     coords,
-    distanceInMeters
+    distanceInMeters,
+    companiesMustBeOpenNow
 ) => {
     for (let i = 0; i < count; i++) {
         const [registerBody] = await registerCompany()
@@ -102,6 +106,32 @@ export const createCompaniesAroundCoords = async (
             )
         )
 
-        await setCompanyUp(registerBody, nearbyCoords)
+        await setCompanyUp(registerBody, nearbyCoords, companiesMustBeOpenNow)
     }
+}
+
+export const expectToBeCompanyData = data => {
+    expect(data.name).to.be.a('string')
+    expect(data.description).to.be.a('string')
+    expect(data.phoneNumber).to.be.a('string')
+    expect(data.email).to.be.a('string')
+    expect(data.addressLine1).to.be.a('string')
+    expect(data.addressLine2).to.be.a('string')
+    expect(data.city).to.be.a('string')
+    expect(data.state).to.be.a('string')
+    expect(data.country).to.be.a('string')
+
+    expect(data.addressCoords).to.be.an('array')
+    data.addressCoords.forEach(item => {
+        expect(item).to.be.a('number')
+    })
+
+    expect(data.businessHours).to.be.an('array')
+    expect(data.businessHours.length).to.eql(7)
+    data.businessHours.forEach(item => {
+        expect(item.startsAt).to.be.a('number')
+        expect(item.endsAt).to.be.a('number')
+    })
+
+    expect(data.isOpenNow).to.be.a('boolean')
 }

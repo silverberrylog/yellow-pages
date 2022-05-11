@@ -13,6 +13,7 @@ import {
     uploadPhotos,
     setCompanyUp,
     createCompaniesAroundCoords,
+    expectToBeCompanyData,
 } from './test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
@@ -241,33 +242,31 @@ describe('Testing the companies component', () => {
 
             const body = res.json()
             expect(body.count).to.be.a('number')
-
             expect(body.companies).to.be.an('array')
-            body.companies.forEach(company => {
-                expect(company.name).to.be.a('string')
-                expect(company.description).to.be.a('string')
-                expect(company.phoneNumber).to.be.a('string')
-                expect(company.email).to.be.a('string')
-                expect(company.addressLine1).to.be.a('string')
-                expect(company.addressLine2).to.be.a('string')
-                expect(company.city).to.be.a('string')
-                expect(company.state).to.be.a('string')
-                expect(company.country).to.be.a('string')
+            body.companies.forEach(expectToBeCompanyData)
+        })
 
-                expect(company.addressCoords).to.be.an('array')
-                company.addressCoords.forEach(item => {
-                    expect(item).to.be.a('number')
-                })
+        it('Should return only companies that are open now', async () => {
+            const coords = genCoords()
+            await createCompaniesAroundCoords(5, coords, 500, true)
 
-                expect(company.businessHours).to.be.an('array')
-                expect(company.businessHours.length).to.eql(7)
-                company.businessHours.forEach(item => {
-                    expect(item.startsAt).to.be.a('number')
-                    expect(item.endsAt).to.be.a('number')
-                })
-
-                expect(company.isOpenNow).to.be.a('boolean')
+            const res = await server.inject({
+                method: 'GET',
+                url: '/companies',
+                query: {
+                    aroundCoords: coords,
+                    radiusInMeters: 500,
+                    page: 1,
+                    sortBy: 'distance',
+                    sortOrder: 'asc',
+                    mustBeOpen: true,
+                },
             })
+
+            const body = res.json()
+            expect(body.count).to.be.a('number')
+            expect(body.companies).to.be.an('array')
+            body.companies.forEach(expectToBeCompanyData)
         })
     })
 })

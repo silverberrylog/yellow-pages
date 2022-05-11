@@ -101,6 +101,7 @@ export const setup = async (companyId, companyData) => {
         type: 'Point',
         coordinates: dataCopy.addressCoords,
     }
+    // console.log(dataCopy.businessHours)
 
     await Company.findByIdAndUpdate(companyId, { companyData: dataCopy })
 }
@@ -174,14 +175,22 @@ export const deletePhotos = async (companyId, publicURLS) => {
  * @param {number} page
  * @param {'name' | 'distance'} sortBy
  * @param {'asc' | 'desc'} sortOrder
+ * @param {boolean} mustBeOpen
  */
 export const findCompanies = async (
     aroundCoords,
     radiusInMeters,
     page,
     sortBy,
-    sortOrder
+    sortOrder,
+    mustBeOpen
 ) => {
+    const timeNow = new Date()
+    const minutesSinceTheDayStarted =
+        timeNow.getHours() * 60 + timeNow.getMinutes()
+    const weekDayIndex = timeNow.getUTCDay() - 1
+    console.log(minutesSinceTheDayStarted, weekDayIndex)
+
     const [queryResult] = await Company.aggregate([
         {
             $geoNear: {
@@ -208,26 +217,58 @@ export const findCompanies = async (
                 country: '$companyData.country',
                 businessHours: '$companyData.businessHours',
                 addressCoords: '$companyData.addressCoords.coordinates',
+                isOpenNow: {
+                    $and: [
+                        {
+                            $gte: [
+                                minutesSinceTheDayStarted,
+                                {
+                                    $arrayElemAt: [
+                                        `$companyData.businessHours.startsAt`,
+                                        weekDayIndex,
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            $lt: [
+                                minutesSinceTheDayStarted,
+                                {
+                                    $arrayElemAt: [
+                                        `$companyData.businessHours.endsAt`,
+                                        weekDayIndex,
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                distance: '$distance',
+                // minutesSinceTheDayStarted <= companyData.businessHours.startsAt &&
+                // companyData.businessHours.endsAt < minutesSinceTheDayStarted,
+            },
+        },
+        // ...(mustBeOpen
+        //     ? {
+        //           $match: {
+        //               isOpenNow: true,
+        //           },
+        //       }
+        //     : {}),
+        {
+            $sort: {
+                [sortBy]: sortOrder == 'asc' ? 1 : -1,
             },
         },
         {
+            $skip: 25 * (page - 1),
+        },
+        {
+            $limit: 25,
+        },
+        {
             $facet: {
-                companies: [
-                    {
-                        $sort: {
-                            [sortBy == 'distance'
-                                ? 'distance'
-                                : 'companyData.name']:
-                                sortOrder == 'asc' ? 1 : -1,
-                        },
-                    },
-                    {
-                        $skip: 25 * (page - 1),
-                    },
-                    {
-                        $limit: 25,
-                    },
-                ],
+                companies: [],
                 count: [
                     {
                         $count: 'count',
@@ -237,15 +278,13 @@ export const findCompanies = async (
         },
     ])
 
-    const timeNow = new Date()
-    const minutesSinceTheDayStarted =
-        timeNow.getHours() * 60 + timeNow.getMinutes()
-
     const formattedCompanies = queryResult.companies.map(companyData => ({
         ...companyData,
-        isOpenNow:
-            minutesSinceTheDayStarted <= companyData.businessHours.startsAt &&
-            companyData.businessHours.endsAt < minutesSinceTheDayStarted,
+        // expected_isOpenNow:
+        //     minutesSinceTheDayStarted <=
+        //         companyData.businessHours[weekDayIndex].startsAt &&
+        //     companyData.businessHours[weekDayIndex].endsAt <
+        //         minutesSinceTheDayStarted,
     }))
 
     return {
