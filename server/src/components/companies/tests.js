@@ -233,7 +233,9 @@ describe('Testing the companies component', () => {
                 query: {
                     aroundCoords,
                     radiusInMeters: distance,
-                    page: 0,
+                    page: 1,
+                    sortBy: 'distance',
+                    sortOrder: 'desc',
                 },
             })
 

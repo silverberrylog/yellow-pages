@@ -172,58 +172,84 @@ export const deletePhotos = async (companyId, publicURLS) => {
  * @param {[number, number]} aroundCoords
  * @param {number} radiusInMeters
  * @param {number} page
+ * @param {'name' | 'distance'} sortBy
+ * @param {'asc' | 'desc'} sortOrder
  */
-export const findCompanies = async (aroundCoords, radiusInMeters, page) => {
-    const query = {
-        companyData: { $exists: true },
-        $near: {
-            $geometry: { type: 'Point', coordinates: aroundCoords },
-            $maxDistance: radiusInMeters,
+export const findCompanies = async (
+    aroundCoords,
+    radiusInMeters,
+    page,
+    sortBy,
+    sortOrder
+) => {
+    const [queryResult] = await Company.aggregate([
+        {
+            $geoNear: {
+                near: { type: 'Point', coordinates: aroundCoords },
+                $maxDistance: radiusInMeters,
+                spherical: true,
+                distanceField: 'distance',
+                query: {
+                    companyData: { $exists: true },
+                },
+            },
         },
-    }
-
-    const count = await Company.countDocuments(query)
-    const companies = await Company.find(query)
-        .select([
-            '-_id',
-            'companyData.name',
-            'companyData.description',
-            'companyData.phoneNumber',
-            'companyData.email',
-            'companyData.addressLine1',
-            'companyData.addressLine2',
-            'companyData.city',
-            'companyData.state',
-            'companyData.country',
-            'companyData.addressCoords.coordinates',
-            'companyData.businessHours',
-        ])
-        .skip(25 * (page - 1))
-        .limit(25)
+        {
+            $project: {
+                _id: false,
+                name: '$companyData.name',
+                description: '$companyData.description',
+                phoneNumber: '$companyData.phoneNumber',
+                email: '$companyData.email',
+                addressLine1: '$companyData.addressLine1',
+                addressLine2: '$companyData.addressLine2',
+                city: '$companyData.city',
+                state: '$companyData.state',
+                country: '$companyData.country',
+                businessHours: '$companyData.businessHours',
+                addressCoords: '$companyData.addressCoords.coordinates',
+            },
+        },
+        {
+            $facet: {
+                companies: [
+                    {
+                        $sort: {
+                            [sortBy == 'distance'
+                                ? 'distance'
+                                : 'companyData.name']:
+                                sortOrder == 'asc' ? 1 : -1,
+                        },
+                    },
+                    {
+                        $skip: 25 * (page - 1),
+                    },
+                    {
+                        $limit: 25,
+                    },
+                ],
+                count: [
+                    {
+                        $count: 'count',
+                    },
+                ],
+            },
+        },
+    ])
 
     const timeNow = new Date()
     const minutesSinceTheDayStarted =
         timeNow.getHours() * 60 + timeNow.getMinutes()
 
+    const formattedCompanies = queryResult.companies.map(companyData => ({
+        ...companyData,
+        isOpenNow:
+            minutesSinceTheDayStarted <= companyData.businessHours.startsAt &&
+            companyData.businessHours.endsAt < minutesSinceTheDayStarted,
+    }))
+
     return {
-        companies: companies.map(company => ({
-            name: company.companyData.name,
-            description: company.companyData.description,
-            phoneNumber: company.companyData.phoneNumber,
-            email: company.companyData.email,
-            addressLine1: company.companyData.addressLine1,
-            addressLine2: company.companyData.addressLine2,
-            city: company.companyData.city,
-            state: company.companyData.state,
-            country: company.companyData.country,
-            addressCoords: company.companyData.addressCoords?.coordinates,
-            businessHours: company.companyData.businessHours,
-            isOpenNow:
-                minutesSinceTheDayStarted <=
-                    company.companyData.businessHours.startsAt &&
-                company.companyData.businessHours.endsAt <
-                    minutesSinceTheDayStarted,
-        })),
-        count,
+        companies: formattedCompanies,
+        count: queryResult.count[0].count,
     }
 }

@@ -134,6 +134,8 @@ export default async fastify => {
                     .required(),
                 radiusInMeters: Joi.number().required(),
                 page: Joi.number().integer().min(1).required(),
+                sortBy: Joi.string().allow('name', 'distance').required(),
+                sortOrder: Joi.string().allow('asc', 'desc').required(),
             }),
         },
         preHandler: [],
@@ -141,7 +143,9 @@ export default async fastify => {
             const { companies, count } = await services.findCompanies(
                 req.query.aroundCoords,
                 req.query.radiusInMeters,
-                req.query.page
+                req.query.page,
+                req.query.sortBy,
+                req.query.sortOrder
             )
             return { companies, count }
         },
