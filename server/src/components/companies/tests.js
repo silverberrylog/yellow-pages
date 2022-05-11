@@ -1,11 +1,18 @@
 import { expect } from 'chai'
-import { expectError } from '../../test-utils/index.js'
+import {
+    expectError,
+    genCoords,
+    reverseArr,
+    toNumbersArr,
+} from '../../test-utils/index.js'
 import {
     genCompanyData,
     registerCompany,
     loginCompany,
     authHeaders,
     uploadPhotos,
+    setCompanyUp,
+    createCompaniesAroundCoords,
 } from './test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
@@ -95,7 +102,7 @@ describe('Testing the companies component', () => {
                 ...authHeaders(registerBody),
             }
 
-            await requiresAuth(mockRequest).catch(console.log)
+            await requiresAuth(mockRequest)
 
             expect(mockRequest.company).to.be.instanceOf(Company)
         })
@@ -156,43 +163,17 @@ describe('Testing the companies component', () => {
         it('Should succeed when all the data is present', async () => {
             const [registerBody] = await registerCompany()
 
-            const res = await server.inject({
-                method: 'POST',
-                url: '/companies/setup',
-                body: {
-                    name: faker.company.companyName(),
-                    addressLine1: faker.address.streetAddress(),
-                    addressLine2: faker.address.secondaryAddress(),
-                    city: faker.address.city(),
-                    state: faker.address.state(),
-                    country: faker.address.country(),
-                    email: faker.internet.email(),
-                    phoneNumber: faker.phone.phoneNumber('#### ### ###'),
-                    description: faker.company.bs(),
-                    businessHours: Array(7)
-                        .fill(null)
-                        .map(() => ({
-                            startsAt: faker.datatype.number({
-                                min: 0,
-                                max: (24 * 60) / 2,
-                            }),
-                            endsAt: faker.datatype.number({
-                                min: (24 * 60) / 2,
-                                max: 24 * 60,
-                            }),
-                        })),
-                },
-                ...authHeaders(registerBody),
-            })
+            const [body, res] = await setCompanyUp(registerBody)
 
-            const body = res.json()
             expect(res.statusCode).to.eql(200)
             expect(body).to.be.empty
         })
     })
+
     describe('Update company info', () => {
         it('Should successfully upload 2 photos', async () => {
             const [registerBody] = await registerCompany()
+            await setCompanyUp(registerBody)
 
             const [body, res] = await uploadPhotos(registerBody)
 
@@ -203,6 +184,7 @@ describe('Testing the companies component', () => {
 
         it('Should successfully delete 1 photo', async () => {
             const [registerBody] = await registerCompany()
+            await setCompanyUp(registerBody)
             const [uploadBody] = await uploadPhotos(registerBody)
 
             const res = await server.inject({
@@ -221,6 +203,7 @@ describe('Testing the companies component', () => {
 
         it('Should update the company info', async () => {
             const [registerBody] = await registerCompany()
+            await setCompanyUp(registerBody)
 
             const res = await server.inject({
                 method: 'PATCH',
@@ -235,6 +218,54 @@ describe('Testing the companies component', () => {
             const body = res.json()
             expect(res.statusCode).to.eql(200)
             expect(body).to.be.empty
+        })
+    })
+
+    describe('Querying companies', () => {
+        it('Should return the companies within 500 meters of the specified location', async () => {
+            const aroundCoords = genCoords()
+            const distance = 500
+            await createCompaniesAroundCoords(3, aroundCoords, distance)
+
+            const res = await server.inject({
+                method: 'GET',
+                url: '/companies',
+                query: {
+                    aroundCoords,
+                    radiusInMeters: distance,
+                    page: 0,
+                },
+            })
+
+            const body = res.json()
+            expect(body.count).to.be.a('number')
+
+            expect(body.companies).to.be.an('array')
+            body.companies.forEach(company => {
+                expect(company.name).to.be.a('string')
+                expect(company.description).to.be.a('string')
+                expect(company.phoneNumber).to.be.a('string')
+                expect(company.email).to.be.a('string')
+                expect(company.addressLine1).to.be.a('string')
+                expect(company.addressLine2).to.be.a('string')
+                expect(company.city).to.be.a('string')
+                expect(company.state).to.be.a('string')
+                expect(company.country).to.be.a('string')
+
+                expect(company.addressCoords).to.be.an('array')
+                company.addressCoords.forEach(item => {
+                    expect(item).to.be.a('number')
+                })
+
+                expect(company.businessHours).to.be.an('array')
+                expect(company.businessHours.length).to.eql(7)
+                company.businessHours.forEach(item => {
+                    expect(item.startsAt).to.be.a('number')
+                    expect(item.endsAt).to.be.a('number')
+                })
+
+                expect(company.isOpenNow).to.be.a('boolean')
+            })
         })
     })
 })

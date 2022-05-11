@@ -12,10 +12,10 @@
         "@faker-js/faker": "^6.3.1",
         "chai": "^4.3.6",
         "form-auto-content": "^2.2.0",
-        "lodash.merge": "^4.6.2",
         "mocha": "^10.0.0"
     },
     "dependencies": {
+        "lodash.merge": "^4.6.2",
         "@fastify/multipart": "^6.0.0",
         "bcrypt": "^5.0.1",
         "cross-env": "^7.0.3",

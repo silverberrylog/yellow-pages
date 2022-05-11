@@ -15,6 +15,8 @@ export const companyDataValidation = {
     city: Joi.string(),
     state: Joi.string(),
     country: Joi.string(),
+    // longitude, latitude
+    addressCoords: Joi.array().items(Joi.number()).length(2),
     businessHours: Joi.array()
         .items(
             Joi.object({

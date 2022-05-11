@@ -34,6 +34,23 @@ const CompanyPhotoSchema = new mongoose.Schema(
 
 export const CompanyPhoto = mongoose.model('CompanyPhoto', CompanyPhotoSchema)
 
+const PointSchema = new mongoose.Schema(
+    {
+        type: {
+            type: String,
+            required: true,
+            enum: ['Point'],
+        },
+        coordinates: {
+            type: [Number],
+            required: true,
+        },
+    },
+    {
+        timestamps: true,
+    }
+)
+
 const BusinessHours = {
     startsAt: { type: Number, required: true },
     endsAt: { type: Number, required: true },
@@ -49,6 +66,7 @@ const CompanyData = {
     city: { type: String, required: true },
     state: { type: String, required: true },
     country: { type: String, required: true },
+    addressCoords: { type: PointSchema, required: true, index: '2dsphere' },
     businessHours: { type: [BusinessHours], required: true },
 }
 

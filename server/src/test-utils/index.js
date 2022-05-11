@@ -1,3 +1,4 @@
+import faker from '@faker-js/faker'
 import { expect } from 'chai'
 
 export const expectError = (res, error) => {
@@ -7,3 +8,12 @@ export const expectError = (res, error) => {
     expect(body.name).to.eql(error.name)
     expect(body.message).to.eql(error.description)
 }
+
+export const reverseArr = arr => {
+    return [...arr].reverse()
+}
+
+export const toNumbersArr = arr => arr.map(item => +item)
+
+export const genCoords = () =>
+    toNumbersArr([faker.address.longitude(), faker.address.latitude()])

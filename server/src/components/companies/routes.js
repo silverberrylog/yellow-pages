@@ -55,7 +55,7 @@ export default async fastify => {
 
     fastify.route({
         method: 'POST',
-        url: '/setup',
+        url: '/info',
         schema: {
             body: Joi.object(companyDataValidation).options({
                 presence: 'required',
@@ -119,6 +119,31 @@ export default async fastify => {
         handler: async req => {
             await services.deletePhotos(req.company.id, req.body.publicURLS)
             return {}
+        },
+    })
+
+    fastify.route({
+        method: 'GET',
+        url: '/',
+        schema: {
+            querystring: Joi.object({
+                // longitude, latitude
+                aroundCoords: Joi.array()
+                    .items(Joi.number())
+                    .length(2)
+                    .required(),
+                radiusInMeters: Joi.number().required(),
+                page: Joi.number().integer().min(1).required(),
+            }),
+        },
+        preHandler: [],
+        handler: async req => {
+            const { companies, count } = await services.findCompanies(
+                req.query.aroundCoords,
+                req.query.radiusInMeters,
+                req.query.page
+            )
+            return { companies, count }
         },
     })
 }
