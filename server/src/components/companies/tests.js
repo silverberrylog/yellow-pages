@@ -122,5 +122,31 @@ describe('Testing the companies component', () => {
                 expect(isOpenNow).to.eq(true)
             })
         })
+
+        it('Should return info about own company when it exists', async () => {
+            const [registerBody] = await registerAccount()
+            await setCompanyUp(registerBody)
+
+            const res = await server.inject({
+                method: 'GET',
+                url: '/companies/self',
+                ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expectToBeCompanyData(body.company)
+        })
+
+        it('Should not return info about own company when it does not exist', async () => {
+            const [registerBody] = await registerAccount()
+            const res = await server.inject({
+                method: 'GET',
+                url: '/companies/self',
+                ...authHeaders(registerBody),
+            })
+
+            const body = res.json()
+            expect(body.company).to.be.null
+        })
     })
 })

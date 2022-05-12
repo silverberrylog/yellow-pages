@@ -104,4 +104,15 @@ export default async fastify => {
             return { companies, count }
         },
     })
+
+    fastify.route({
+        method: 'GET',
+        url: '/self',
+        schema: {},
+        preHandler: [requiresAuth],
+        handler: async req => {
+            const { company } = await services.getCompanyInfo(req.company?.id)
+            return { company }
+        },
+    })
 }

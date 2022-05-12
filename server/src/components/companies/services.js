@@ -2,6 +2,7 @@ import { CompanyPhoto } from './models.js'
 import { unlinkSync } from 'fs'
 import lodashMerge from 'lodash.merge'
 import { Company } from './models.js'
+import mongoose from 'mongoose'
 
 /**
  * @typedef {Object} BusinessHours
@@ -23,6 +24,56 @@ import { Company } from './models.js'
  * @prop {[number, number]} addressCords
  * @prop {BusinessHours[]} businessHours
  */
+
+const companyProjection = () => {
+    const timeNow = new Date()
+    const minutesSinceTheDayStarted =
+        timeNow.getHours() * 60 + timeNow.getMinutes()
+    const weekDayIndex = timeNow.getUTCDay() - 1
+
+    return {
+        $project: {
+            _id: false,
+            name: true,
+            description: true,
+            phoneNumber: true,
+            email: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            country: true,
+            businessHours: true,
+            addressCoords: '$addressCoords.coordinates',
+            isOpenNow: {
+                $and: [
+                    {
+                        $gte: [
+                            minutesSinceTheDayStarted,
+                            {
+                                $arrayElemAt: [
+                                    '$businessHours.startsAt',
+                                    weekDayIndex,
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        $lt: [
+                            minutesSinceTheDayStarted,
+                            {
+                                $arrayElemAt: [
+                                    '$businessHours.endsAt',
+                                    weekDayIndex,
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        },
+    }
+}
 
 /**
  * @param {string | undefined} companyId
@@ -119,11 +170,6 @@ export const findCompanies = async (
     sortOrder,
     mustBeOpen
 ) => {
-    const timeNow = new Date()
-    const minutesSinceTheDayStarted =
-        timeNow.getHours() * 60 + timeNow.getMinutes()
-    const weekDayIndex = timeNow.getUTCDay() - 1
-
     const matchOpenCompanies = {
         $match: {
             isOpenNow: true,
@@ -151,49 +197,7 @@ export const findCompanies = async (
                 spherical: true,
             },
         },
-        {
-            $project: {
-                _id: false,
-                name: true,
-                description: true,
-                phoneNumber: true,
-                email: true,
-                addressLine1: true,
-                addressLine2: true,
-                city: true,
-                state: true,
-                country: true,
-                businessHours: true,
-                addressCoords: '$addressCoords.coordinates',
-                isOpenNow: {
-                    $and: [
-                        {
-                            $gte: [
-                                minutesSinceTheDayStarted,
-                                {
-                                    $arrayElemAt: [
-                                        '$businessHours.startsAt',
-                                        weekDayIndex,
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            $lt: [
-                                minutesSinceTheDayStarted,
-                                {
-                                    $arrayElemAt: [
-                                        '$businessHours.endsAt',
-                                        weekDayIndex,
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
-                distance: '$distance',
-            },
-        },
+        companyProjection(),
         {
             $facet: {
                 companies: mustBeOpen
@@ -212,4 +216,22 @@ export const findCompanies = async (
         companies: queryResult.companies,
         count: queryResult.count[0]?.count || 0,
     }
+}
+
+/**
+ * @param {string} companyId
+ */
+export const getCompanyInfo = async companyId => {
+    if (!companyId) return { company: null }
+
+    const [company] = await Company.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(companyId),
+            },
+        },
+        companyProjection(),
+    ])
+
+    return { company }
 }
