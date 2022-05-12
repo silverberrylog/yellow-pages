@@ -1,74 +1,7 @@
-import { hash, compare } from 'bcrypt'
-import dayjs from 'dayjs'
-import uid from 'uid-safe'
-import AppError from '../../utils/AppError.js'
-import errors from './errors.js'
-import { Company, CompanyPhoto, Session } from './models.js'
+import { CompanyPhoto } from './models.js'
 import { unlinkSync } from 'fs'
-import { resolve } from 'path'
-import mongoose from 'mongoose'
 import lodashMerge from 'lodash.merge'
-
-const createSession = async company => {
-    return await Session.create({
-        publicId: await uid(32),
-        expiresAt: dayjs().add('2', 'weeks').toDate(),
-        company,
-    })
-}
-
-const getSessionPublicData = session => ({
-    id: session.publicId,
-    expiresAt: session.expiresAt,
-})
-
-/**
- * @param {string} email
- * @param {string} password
- * @throws {AppError}
- */
-export const register = async (email, password) => {
-    const emailInUse = await Company.findOne({ email })
-    if (emailInUse) throw new AppError(errors.registerEmailInUse)
-
-    const company = await Company.create({
-        email,
-        password: await hash(password, 10),
-    })
-    const session = await createSession(company)
-
-    return {
-        session: getSessionPublicData(session),
-        companyData: null,
-    }
-}
-
-/**
- * @param {string} email
- * @param {string} password
- * @throws {AppError}
- */
-export const login = async (email, password) => {
-    const company = await Company.findOne({ email })
-    if (!company) throw new AppError(errors.loginAccountNotFound)
-
-    const passwordsMatch = await compare(password, company.password)
-    if (!passwordsMatch) throw new AppError(errors.loginWrongPassword)
-
-    const session = await createSession(company)
-
-    return {
-        session: getSessionPublicData(session),
-        companyData: company.companyData,
-    }
-}
-
-/**
- * @param {string} sessionPublicId
- */
-export const logout = async sessionPublicId => {
-    await Session.deleteOne({ publicId: sessionPublicId })
-}
+import { Company } from './models.js'
 
 /**
  * @typedef {Object} BusinessHours
@@ -92,18 +25,21 @@ export const logout = async sessionPublicId => {
  */
 
 /**
- * @param {string} companyId
+ * @param {string | undefined} companyId
+ * @param {string} accountId
  * @param {CompanyData} companyData
  */
-export const setup = async (companyId, companyData) => {
-    let dataCopy = { ...companyData }
+export const setup = async (companyId, accountId, companyData) => {
+    // thrown an error if the account already has a company
+    // if (companyId) throw new AppError(errors)
+
+    let dataCopy = { ...companyData, account: accountId }
     dataCopy.addressCoords = {
         type: 'Point',
         coordinates: dataCopy.addressCoords,
     }
-    // console.log(dataCopy.businessHours)
 
-    await Company.findByIdAndUpdate(companyId, { companyData: dataCopy })
+    await Company.create(dataCopy)
 }
 
 /**
@@ -118,9 +54,7 @@ export const updateInfo = async (companyId, companyData) => {
         }
     }
 
-    const company = await Company.findById(companyId).select('companyData')
-    company.companyData = lodashMerge(company.companyData, dataCopy)
-    await company.save()
+    await Company.findByIdAndUpdate(companyId, dataCopy)
 }
 
 /**
@@ -189,72 +123,13 @@ export const findCompanies = async (
     const minutesSinceTheDayStarted =
         timeNow.getHours() * 60 + timeNow.getMinutes()
     const weekDayIndex = timeNow.getUTCDay() - 1
-    console.log(minutesSinceTheDayStarted, weekDayIndex)
 
-    const [queryResult] = await Company.aggregate([
-        {
-            $geoNear: {
-                near: { type: 'Point', coordinates: aroundCoords },
-                $maxDistance: radiusInMeters,
-                spherical: true,
-                distanceField: 'distance',
-                query: {
-                    companyData: { $exists: true },
-                },
-            },
+    const matchOpenCompanies = {
+        $match: {
+            isOpenNow: true,
         },
-        {
-            $project: {
-                _id: false,
-                name: '$companyData.name',
-                description: '$companyData.description',
-                phoneNumber: '$companyData.phoneNumber',
-                email: '$companyData.email',
-                addressLine1: '$companyData.addressLine1',
-                addressLine2: '$companyData.addressLine2',
-                city: '$companyData.city',
-                state: '$companyData.state',
-                country: '$companyData.country',
-                businessHours: '$companyData.businessHours',
-                addressCoords: '$companyData.addressCoords.coordinates',
-                isOpenNow: {
-                    $and: [
-                        {
-                            $gte: [
-                                minutesSinceTheDayStarted,
-                                {
-                                    $arrayElemAt: [
-                                        `$companyData.businessHours.startsAt`,
-                                        weekDayIndex,
-                                    ],
-                                },
-                            ],
-                        },
-                        {
-                            $lt: [
-                                minutesSinceTheDayStarted,
-                                {
-                                    $arrayElemAt: [
-                                        `$companyData.businessHours.endsAt`,
-                                        weekDayIndex,
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
-                distance: '$distance',
-                // minutesSinceTheDayStarted <= companyData.businessHours.startsAt &&
-                // companyData.businessHours.endsAt < minutesSinceTheDayStarted,
-            },
-        },
-        // ...(mustBeOpen
-        //     ? {
-        //           $match: {
-        //               isOpenNow: true,
-        //           },
-        //       }
-        //     : {}),
+    }
+    const skipSortAndLimit = [
         {
             $sort: {
                 [sortBy]: sortOrder == 'asc' ? 1 : -1,
@@ -266,9 +141,64 @@ export const findCompanies = async (
         {
             $limit: 25,
         },
+    ]
+    const [queryResult] = await Company.aggregate([
+        {
+            $geoNear: {
+                near: { type: 'Point', coordinates: aroundCoords },
+                maxDistance: 1000000000,
+                distanceField: 'distance',
+                spherical: true,
+            },
+        },
+        {
+            $project: {
+                _id: false,
+                name: true,
+                description: true,
+                phoneNumber: true,
+                email: true,
+                addressLine1: true,
+                addressLine2: true,
+                city: true,
+                state: true,
+                country: true,
+                businessHours: true,
+                addressCoords: '$addressCoords.coordinates',
+                isOpenNow: {
+                    $and: [
+                        {
+                            $gte: [
+                                minutesSinceTheDayStarted,
+                                {
+                                    $arrayElemAt: [
+                                        '$businessHours.startsAt',
+                                        weekDayIndex,
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            $lt: [
+                                minutesSinceTheDayStarted,
+                                {
+                                    $arrayElemAt: [
+                                        '$businessHours.endsAt',
+                                        weekDayIndex,
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+                distance: '$distance',
+            },
+        },
         {
             $facet: {
-                companies: [],
+                companies: mustBeOpen
+                    ? [matchOpenCompanies, ...skipSortAndLimit]
+                    : [...skipSortAndLimit],
                 count: [
                     {
                         $count: 'count',
@@ -278,17 +208,8 @@ export const findCompanies = async (
         },
     ])
 
-    const formattedCompanies = queryResult.companies.map(companyData => ({
-        ...companyData,
-        // expected_isOpenNow:
-        //     minutesSinceTheDayStarted <=
-        //         companyData.businessHours[weekDayIndex].startsAt &&
-        //     companyData.businessHours[weekDayIndex].endsAt <
-        //         minutesSinceTheDayStarted,
-    }))
-
     return {
-        companies: formattedCompanies,
-        count: queryResult.count[0].count,
+        companies: queryResult.companies,
+        count: queryResult.count[0]?.count || 0,
     }
 }

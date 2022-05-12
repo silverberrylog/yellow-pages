@@ -6,7 +6,9 @@
     "scripts": {
         "prod": "cross-env NODE_ENV=production node src/main.js",
         "dev": "cross-env NODE_ENV=development nodemon src/main.js",
-        "test": "cross-env NODE_ENV=test nodemon --exec \"mocha src/**/*/tests.js\""
+        "test": "cross-env NODE_ENV=test nodemon --exec \"mocha src/**/*/tests.js\"",
+        "test:accounts": "npm run test -- --grep accounts",
+        "test:companies": "npm run test -- --grep companies"
     },
     "devDependencies": {
         "@faker-js/faker": "^6.3.1",

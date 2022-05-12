@@ -1,168 +1,19 @@
 import { expect } from 'chai'
+import { genCoords } from '../../test-utils/index.js'
+import { registerAccount, authHeaders } from '../accounts/test-utils.js'
 import {
-    expectError,
-    genCoords,
-    reverseArr,
-    toNumbersArr,
-} from '../../test-utils/index.js'
-import {
-    genCompanyData,
-    registerCompany,
-    loginCompany,
-    authHeaders,
     uploadPhotos,
-    setCompanyUp,
     createCompaniesAroundCoords,
     expectToBeCompanyData,
+    setCompanyUp,
 } from './test-utils.js'
-import errors from './errors.js'
-import { requiresAuth } from './middleware.js'
-import { Company, Session } from './models.js'
 import { faker } from '@faker-js/faker'
-import mongoose from 'mongoose'
 import { server } from '../../test-utils/setup.js'
 
 describe('Testing the companies component', () => {
-    describe('Register', () => {
-        it('Should register a company and return auth session info', async () => {
-            const [body, res] = await registerCompany()
-
-            expect(res.statusCode).to.eql(200)
-            expect(body.session.id).to.be.a('string')
-            expect(Date.parse(body.session.expiresAt)).to.be.a('number')
-            expect(body.companyData).to.be.null
-        })
-
-        it('Should throw an error if the email is already in use', async () => {
-            const existingCompanyData = genCompanyData()
-            await registerCompany(existingCompanyData)
-
-            const companyData = {
-                ...genCompanyData(),
-                email: existingCompanyData.email,
-            }
-            const [, res] = await registerCompany(companyData)
-
-            expectError(res, errors.registerEmailInUse)
-        })
-    })
-
-    describe('Login', () => {
-        it('Should log in a company and return auth session and company info', async () => {
-            const companyData = genCompanyData()
-            await registerCompany(companyData)
-            const [body, res] = await loginCompany(companyData)
-
-            expect(res.statusCode).to.eql(200)
-            expect(body.session.id).to.be.a('string')
-            expect(Date.parse(body.session.expiresAt)).to.be.a('number')
-            expect(body.companyData).to.not.be.ok
-        })
-
-        it('Should throw an error if the account does not exist', async () => {
-            const companyData = genCompanyData()
-            const [, res] = await loginCompany(companyData)
-
-            expectError(res, errors.loginAccountNotFound)
-        })
-
-        it('Should throw an error if the password is wrong', async () => {
-            const companyData = genCompanyData()
-            await registerCompany(companyData)
-            const wrongPasswordData = {
-                email: companyData.email,
-                password: genCompanyData().password,
-            }
-
-            const [, res] = await loginCompany(wrongPasswordData)
-
-            expectError(res, errors.loginWrongPassword)
-        })
-    })
-
-    describe('Logout', () => {
-        it('Should log out a company', async () => {
-            const [registerBody] = await registerCompany()
-
-            const res = await server.inject({
-                method: 'POST',
-                url: '/companies/logout',
-                ...authHeaders(registerBody),
-            })
-
-            const body = res.json()
-            expect(res.statusCode).to.eql(200)
-            expect(body).to.be.empty
-        })
-    })
-
-    describe('Middleware', () => {
-        it('Should succeed when the session exists and is not expired', async () => {
-            const [registerBody] = await registerCompany()
-            let mockRequest = {
-                ...authHeaders(registerBody),
-            }
-
-            await requiresAuth(mockRequest)
-
-            expect(mockRequest.company).to.be.instanceOf(Company)
-        })
-
-        it('Should throw when the auth header is not preset', async () => {
-            let mockRequest = {
-                headers: {
-                    lorem: 'ipsum',
-                },
-            }
-
-            await requiresAuth(mockRequest).catch(err => {
-                expect(err.name).to.eql(errors.notLoggedIn.name)
-            })
-        })
-
-        it('Should throw when the auth header is not formatted properly', async () => {
-            let mockRequest = {
-                headers: {
-                    authorization: faker.lorem.words(3),
-                },
-            }
-
-            await requiresAuth(mockRequest).catch(err => {
-                expect(err.name).to.eql(errors.notLoggedIn.name)
-            })
-        })
-
-        it('Should throw when the session does not exist', async () => {
-            let mockRequest = {
-                ...authHeaders({
-                    session: { id: new mongoose.Types.ObjectId() },
-                }),
-            }
-
-            await requiresAuth(mockRequest).catch(err => {
-                expect(err.name).to.eql(errors.invalidSession.name)
-            })
-        })
-
-        it('Should throw when the session is expired', async () => {
-            const [registerBody] = await registerCompany()
-            await Session.findOneAndUpdate(
-                { publicId: registerBody.session.id },
-                { expiresAt: new Date(2000, 10, 10) }
-            )
-            let mockRequest = {
-                ...authHeaders(registerBody),
-            }
-
-            await requiresAuth(mockRequest).catch(err => {
-                expect(err.name).to.eql(errors.expiredSession.name)
-            })
-        })
-    })
-
     describe('Account setup', () => {
         it('Should succeed when all the data is present', async () => {
-            const [registerBody] = await registerCompany()
+            const [registerBody] = await registerAccount()
 
             const [body, res] = await setCompanyUp(registerBody)
 
@@ -173,7 +24,7 @@ describe('Testing the companies component', () => {
 
     describe('Update company info', () => {
         it('Should successfully upload 2 photos', async () => {
-            const [registerBody] = await registerCompany()
+            const [registerBody] = await registerAccount()
             await setCompanyUp(registerBody)
 
             const [body, res] = await uploadPhotos(registerBody)
@@ -184,7 +35,7 @@ describe('Testing the companies component', () => {
         })
 
         it('Should successfully delete 1 photo', async () => {
-            const [registerBody] = await registerCompany()
+            const [registerBody] = await registerAccount()
             await setCompanyUp(registerBody)
             const [uploadBody] = await uploadPhotos(registerBody)
 
@@ -203,12 +54,12 @@ describe('Testing the companies component', () => {
         })
 
         it('Should update the company info', async () => {
-            const [registerBody] = await registerCompany()
+            const [registerBody] = await registerAccount()
             await setCompanyUp(registerBody)
 
             const res = await server.inject({
                 method: 'PATCH',
-                url: '/companies/info',
+                url: '/companies',
                 body: {
                     email: faker.internet.email(),
                     phoneNumber: faker.phone.phoneNumber('#### ### ###'),
@@ -226,7 +77,7 @@ describe('Testing the companies component', () => {
         it('Should return the companies within 500 meters of the specified location', async () => {
             const aroundCoords = genCoords()
             const distance = 500
-            await createCompaniesAroundCoords(3, aroundCoords, distance)
+            await createCompaniesAroundCoords(5, aroundCoords, distance)
 
             const res = await server.inject({
                 method: 'GET',
@@ -246,7 +97,7 @@ describe('Testing the companies component', () => {
             body.companies.forEach(expectToBeCompanyData)
         })
 
-        it('Should return only companies that are open now', async () => {
+        it('Should return companies within 500 meters that are open now', async () => {
             const coords = genCoords()
             await createCompaniesAroundCoords(5, coords, 500, true)
 
@@ -267,6 +118,9 @@ describe('Testing the companies component', () => {
             expect(body.count).to.be.a('number')
             expect(body.companies).to.be.an('array')
             body.companies.forEach(expectToBeCompanyData)
+            body.companies.forEach(({ isOpenNow }) => {
+                expect(isOpenNow).to.eq(true)
+            })
         })
     })
 })

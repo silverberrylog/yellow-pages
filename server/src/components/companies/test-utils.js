@@ -5,20 +5,7 @@ import { createReadStream } from 'fs'
 import lodashMerge from 'lodash.merge'
 import { genCoords, reverseArr, toNumbersArr } from '../../test-utils/index.js'
 import { expect } from 'chai'
-
-export const genCompanyData = () => ({
-    email: faker.internet.email(),
-    password: faker.internet.password(),
-})
-
-export const registerCompany = async companyData => {
-    const res = await server.inject({
-        method: 'POST',
-        url: '/companies/register',
-        body: companyData || genCompanyData(),
-    })
-    return [res.json(), res]
-}
+import { authHeaders, registerAccount } from '../accounts/test-utils.js'
 
 export const setCompanyUp = async (registerBody, addressCoords, isOpenNow) => {
     let businessHours = Array(7)
@@ -31,12 +18,10 @@ export const setCompanyUp = async (registerBody, addressCoords, isOpenNow) => {
                 ? 24 * 60
                 : faker.datatype.number({ min: (24 * 60) / 2, max: 24 * 60 }),
         }))
-    // console.log(isOpenNow)
-    // console.log(businessHours)
 
     const res = await server.inject({
         method: 'POST',
-        url: '/companies/info',
+        url: '/companies',
         body: {
             name: faker.company.companyName(),
             addressLine1: faker.address.streetAddress(),
@@ -55,21 +40,6 @@ export const setCompanyUp = async (registerBody, addressCoords, isOpenNow) => {
 
     return [res.json(), res]
 }
-
-export const loginCompany = async companyData => {
-    const res = await server.inject({
-        method: 'POST',
-        url: '/companies/login',
-        body: companyData || genCompanyData(),
-    })
-    return [res.json(), res]
-}
-
-export const authHeaders = registerBody => ({
-    headers: {
-        authorization: `Basic ${registerBody.session.id}`,
-    },
-})
 
 export const uploadPhotos = async registerBody => {
     const formData = formAutoContent({
@@ -95,7 +65,7 @@ export const createCompaniesAroundCoords = async (
     companiesMustBeOpenNow
 ) => {
     for (let i = 0; i < count; i++) {
-        const [registerBody] = await registerCompany()
+        const [registerBody] = await registerAccount()
         const nearbyCoords = toNumbersArr(
             reverseArr(
                 faker.address.nearbyGPSCoordinate(

@@ -16,6 +16,7 @@ export default async () => {
         disableRequestLogging: true,
     })
 
+    fastify.decorateRequest('account', null)
     fastify.decorateRequest('company', null)
 
     const onFile = async part => {
@@ -37,9 +38,13 @@ export default async () => {
         onFile,
     })
 
-    fastify.register(import('../components/companies/routes.js'), {
-        prefix: 'companies',
-    })
+    fastify
+        .register(import('../components/accounts/routes.js'), {
+            prefix: 'accounts',
+        })
+        .register(import('../components/companies/routes.js'), {
+            prefix: 'companies',
+        })
 
     fastify.setValidatorCompiler(({ schema }) => {
         return data => {
