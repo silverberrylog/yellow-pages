@@ -33,10 +33,18 @@ export default async () => {
         part.filePathOnDisk = filePathOnDisk
     }
 
-    fastify.register(import('@fastify/multipart'), {
-        attachFieldsToBody: true,
-        onFile,
-    })
+    fastify
+        .register(import('@fastify/cors'), {
+            origin: process.env.CORS_ORIGIN,
+            // origin:
+            //     process.env == 'production'
+            //         ? process.env.CORS_ORIGIN
+            //         : /http[s]?:\/\/localhost:[0-9]{4,5}/,
+        })
+        .register(import('@fastify/multipart'), {
+            attachFieldsToBody: true,
+            onFile,
+        })
 
     fastify
         .register(import('../components/accounts/routes.js'), {

@@ -1,10 +1,11 @@
 import { server } from '../../test-utils/setup.js'
-import { faker } from '@faker-js/faker'
+import { genAccountData } from '../../../../common/index.js'
+// import { faker } from '@faker-js/faker'
 
-export const genAccountData = () => ({
-    email: faker.internet.email(),
-    password: faker.internet.password(),
-})
+// export const genAccountData = () => ({
+//     email: faker.internet.email(),
+//     password: faker.internet.password(),
+// })
 
 export const registerAccount = async accountData => {
     const res = await server.inject({

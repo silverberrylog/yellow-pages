@@ -17,7 +17,7 @@
         "mocha": "^10.0.0"
     },
     "dependencies": {
-        "lodash.merge": "^4.6.2",
+        "@fastify/cors": "^7.0.0",
         "@fastify/multipart": "^6.0.0",
         "bcrypt": "^5.0.1",
         "cross-env": "^7.0.3",
@@ -25,6 +25,7 @@
         "dotenv": "^8.6.0",
         "fastify": "^3.14.1",
         "joi": "^17.4.1",
+        "lodash.merge": "^4.6.2",
         "mongoose": "^6.3.2",
         "uid-safe": "^2.1.5"
     }

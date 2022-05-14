@@ -1,11 +1,7 @@
 import { expect } from 'chai'
 import { expectError, expectToBeADate } from '../../test-utils/index.js'
-import {
-    genAccountData,
-    registerAccount,
-    loginAccount,
-    authHeaders,
-} from './test-utils.js'
+import { registerAccount, loginAccount, authHeaders } from './test-utils.js'
+import { genAccountData } from '../../../../common/index.js'
 import { setCompanyUp } from '../companies/test-utils.js'
 import errors from './errors.js'
 import { requiresAuth } from './middleware.js'
