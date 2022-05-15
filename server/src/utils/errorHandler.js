@@ -16,6 +16,7 @@ class ErrorHandler {
             reply.code(error.httpCode).send({
                 name: error.name,
                 message: error.message,
+                path: error.path,
             })
             return
         }

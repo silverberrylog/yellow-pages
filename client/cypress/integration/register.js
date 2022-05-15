@@ -6,13 +6,16 @@ describe('Testing the register page', () => {
         it('should show an error message when the passwords do not match', function () {
             cy.visit('/register')
 
-            const password = genAccountData().password
+            const { email, password } = genAccountData()
             const differentPassword = genAccountData().password
+            cy.get(':nth-child(1) > .form-control').type(email)
             cy.get(':nth-child(2) > .form-control').type(password)
             cy.get(':nth-child(3) > .form-control').type(differentPassword)
             cy.get('.btn').click()
 
-            cy.get('.text-danger').should('exist')
+            cy.get(':nth-child(3) > .text-danger')
+                .invoke('text')
+                .should('not.be.empty')
         })
 
         it('should show an error message when the email is empty', function () {
@@ -23,7 +26,9 @@ describe('Testing the register page', () => {
             cy.get(':nth-child(3) > .form-control').type(userData.password)
             cy.get('.btn').click()
 
-            cy.get('.text-danger').should('exist')
+            cy.get(':nth-child(1) > .text-danger')
+                .invoke('text')
+                .should('not.be.empty')
         })
     })
 

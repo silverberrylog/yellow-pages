@@ -1,13 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const initialState = {
-    id: null,
-    expiresAt: null,
-}
-
 export const sessionSlice = createSlice({
     name: 'session',
-    initialState,
+    initialState: {
+        id: null,
+        expiresAt: null,
+    },
     reducers: {
         setSession: (state, action) => {
             state.id = action.payload.id

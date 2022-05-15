@@ -36,10 +36,6 @@ export default async () => {
     fastify
         .register(import('@fastify/cors'), {
             origin: process.env.CORS_ORIGIN,
-            // origin:
-            //     process.env == 'production'
-            //         ? process.env.CORS_ORIGIN
-            //         : /http[s]?:\/\/localhost:[0-9]{4,5}/,
         })
         .register(import('@fastify/multipart'), {
             attachFieldsToBody: true,
@@ -54,6 +50,15 @@ export default async () => {
             prefix: 'companies',
         })
 
+    /**
+     * Turns `"email" cannot be null` into `"Email" cannot be null`
+     * @param {string} str
+     * @returns {string}
+     */
+    const capitalizePathName = str => {
+        return str.replace(/(?<=^")[a-z]/, str => str.toUpperCase())
+    }
+
     fastify.setValidatorCompiler(({ schema }) => {
         return data => {
             const { value, error } = schema.validate(data, validationOptions)
@@ -62,7 +67,10 @@ export default async () => {
                     error: new AppError({
                         httpCode: 400,
                         name: 'validation-error',
-                        description: error,
+                        description: capitalizePathName(
+                            error.details[0].message
+                        ),
+                        path: error.details[0].path[0],
                     }),
                 }
 

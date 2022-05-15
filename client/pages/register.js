@@ -1,98 +1,73 @@
-import { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { setSession } from '../store/session'
-import { api } from '../utils/api'
 import Form from 'react-bootstrap/Form'
-import Card from 'react-bootstrap/Card'
-import LoadingButton from '../components/LoadingButton'
-import { useRouter } from 'next/router'
+import AuthContainer from '../components/AuthContainer'
+import { useState } from 'react'
+import { api } from '../utils/api'
+import { useInputState } from '../utils/hooks'
+import ValidationError from '../utils/ValidationError'
 
 export default function Register() {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [repeatPassword, setRepeatPassword] = useState('')
-    const [error, setError] = useState('')
+    const [email, setEmail] = useInputState('')
+    const [password, setPassword] = useInputState('')
+    const [repeatPassword, setRepeatPassword] = useInputState('')
+    const [error, setError] = useState({ path: null, message: null })
 
-    const [isLoading, setIsLoading] = useState(false)
-    const dispatch = useDispatch()
-    const router = useRouter()
-
-    const handleFormSubmit = async event => {
-        event.preventDefault()
-        setIsLoading(true)
-        setError('')
-
-        try {
-            if (password != repeatPassword) {
-                throw new Error('Passwords must match')
-            }
-
-            const { data } = await api.post('/accounts/register', {
-                email,
-                password,
-            })
-
-            dispatch(setSession(data.session))
-            router.push('/dashboard')
-        } catch (err) {
-            setError(err.message.replace('ValidationError: ', ''))
+    const handleRegister = async () => {
+        if (password != repeatPassword) {
+            throw new ValidationError('Passwords must match', 'repeatPassword')
         }
 
-        setIsLoading(false)
+        const { data } = await api.post('/accounts/register', {
+            email,
+            password,
+        })
+
+        return data.session
     }
 
     return (
-        <div className="min-vh-100 d-flex justify-content-center align-items-center">
-            <Card className="w-50">
-                <Card.Body>
-                    <Card.Title className="mb-3">Register</Card.Title>
-                    <Form onSubmit={handleFormSubmit}>
-                        <div className="d-flex gap-2 mb-3">
-                            <Form.Group>
-                                <Form.Control
-                                    value={email}
-                                    onChange={event =>
-                                        setEmail(event.target.value)
-                                    }
-                                    type="email"
-                                    placeholder="Email"
-                                />
-                            </Form.Group>
+        <AuthContainer
+            title="Register"
+            onSubmit={handleRegister}
+            onError={setError}
+        >
+            <Form.Group>
+                <Form.Control
+                    value={email}
+                    onChange={setEmail}
+                    className={error.path == 'email' && 'is-invalid'}
+                    type="email"
+                    placeholder="Email"
+                />
+                <Form.Text className="text-danger">
+                    {error.path == 'email' && error.message}
+                </Form.Text>
+            </Form.Group>
 
-                            <Form.Group>
-                                <Form.Control
-                                    value={password}
-                                    onChange={event =>
-                                        setPassword(event.target.value)
-                                    }
-                                    type="password"
-                                    placeholder="Password"
-                                />
-                            </Form.Group>
+            <Form.Group>
+                <Form.Control
+                    value={password}
+                    onChange={setPassword}
+                    className={error.path == 'password' && 'is-invalid'}
+                    type="password"
+                    placeholder="Password"
+                />
+                <Form.Text className="text-danger">
+                    {error.path == 'password' && error.message}
+                </Form.Text>
+            </Form.Group>
 
-                            <Form.Group>
-                                <Form.Control
-                                    value={repeatPassword}
-                                    onChange={event =>
-                                        setRepeatPassword(event.target.value)
-                                    }
-                                    type="password"
-                                    placeholder="Repeat password"
-                                />
-                            </Form.Group>
-                        </div>
-
-                        <p className="text-danger">{error}</p>
-                        <LoadingButton
-                            isLoading={isLoading}
-                            variant="primary"
-                            type="submit"
-                        >
-                            Submit
-                        </LoadingButton>
-                    </Form>
-                </Card.Body>
-            </Card>
-        </div>
+            <Form.Group>
+                <Form.Control
+                    value={repeatPassword}
+                    onChange={setRepeatPassword}
+                    className={error.path == 'repeatPassword' && 'is-invalid'}
+                    type="password"
+                    placeholder="Repeat password"
+                />
+                <Form.Text className="text-danger">
+                    {error.path == 'repeatPassword' && error.message}
+                </Form.Text>
+            </Form.Group>
+        </AuthContainer>
     )
 }
