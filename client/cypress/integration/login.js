@@ -1,6 +1,6 @@
 /// <reference types="cypress" />
-import { genAccountData } from '../../../common'
-import { registerUser } from '../utils'
+import { genAccountData } from 'Common'
+import { registerUser } from 'Cypress/utils'
 
 describe('Testing the login page', () => {
     describe('Errors', () => {

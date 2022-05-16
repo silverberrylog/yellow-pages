@@ -1,5 +1,5 @@
 export default varName => {
     return typeof Cypress === 'undefined'
-        ? process.env[varName]
+        ? import.meta.env[varName]
         : Cypress.env(varName)
 }

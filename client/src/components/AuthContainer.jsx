@@ -2,18 +2,26 @@ import Form from 'react-bootstrap/Form'
 import Card from 'react-bootstrap/Card'
 import LoadingButton from './LoadingButton'
 
-import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { setSession } from '../store/session'
+import { setSession } from '@/store/session'
 import PropTypes from 'prop-types'
 
 export default function AuthContainer({ onSubmit, children, title, onError }) {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState(null)
 
-    const router = useRouter()
+    const navigate = useNavigate()
+    const location = useLocation()
     const dispatch = useDispatch()
+
+    useEffect(() => {
+        if (!location.state?.error) return
+
+        setError(location.state.error)
+        navigate(location.pathname, { replace: true, state: null })
+    }, [])
 
     const handleSubmit = async event => {
         event.preventDefault()
@@ -24,7 +32,7 @@ export default function AuthContainer({ onSubmit, children, title, onError }) {
         try {
             const session = await onSubmit()
             dispatch(setSession(session))
-            router.push('/dashboard')
+            navigate('/dashboard')
         } catch (err) {
             if (!err.path) setError(err.message)
             else onError(err)

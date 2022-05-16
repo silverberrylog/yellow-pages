@@ -1,10 +1,10 @@
 import { create } from 'axios'
-import { store } from '../store'
+import { store } from '@/store'
 import getEnvVar from './getEnvVar'
 import ValidationError from './ValidationError'
 
 export const api = create({
-    baseURL: getEnvVar('SERVER_URL'),
+    baseURL: getEnvVar('VITE_SERVER_URL'),
 })
 api.interceptors.response.use(
     response => response,

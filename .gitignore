@@ -1,9 +1,7 @@
 **/node_modules/
 **/temp/
 **/coverage/
-**/.next/
-**/out/
-**/build/
+**/dist/
 
 **/*.env
 **/.env

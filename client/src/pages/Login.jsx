@@ -1,8 +1,8 @@
 import Form from 'react-bootstrap/Form'
-import AuthContainer from '../components/AuthContainer'
+import AuthContainer from '@/components/AuthContainer'
 import { useState } from 'react'
-import { api } from '../utils/api'
-import { useInputState } from '../utils/hooks'
+import { api } from '@/utils/api'
+import { useInputState } from '@/utils/hooks'
 
 export default function Login() {
     const [email, setEmail] = useInputState('')

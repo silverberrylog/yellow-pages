@@ -1,5 +1,5 @@
 /// <reference types="cypress" />
-import { genAccountData } from '../../../common'
+import { genAccountData } from 'Common'
 
 describe('Testing the register page', () => {
     describe('Errors', () => {
